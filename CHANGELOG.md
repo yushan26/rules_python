@@ -54,13 +54,21 @@ END_UNRELEASED_TEMPLATE
 
 {#v0-0-0-changed}
 ### Changed
-* Nothing changed.
+* (rules) On Windows, {obj}`--bootstrap_impl=system_python` is forced. This
+  allows setting `--bootstrap_impl=script` in bazelrc for mixed-platform
+  environments.
 
 {#v0-0-0-fixed}
 ### Fixed
+
 * (rules) PyInfo provider is now advertised by py_test, py_binary, and py_library;
   this allows aspects using required_providers to function correctly.
   ([#2506](https://github.com/bazel-contrib/rules_python/issues/2506)).
+* Fixes when using {obj}`--bootstrap_impl=script`:
+  * `compile_pip_requirements` now works with it
+  * The `sys._base_executable` value will reflect the underlying interpreter,
+    not venv interpreter.
+  * The {obj}`//python/runtime_env_toolchains:all` toolchain now works with it.
 
 {#v0-0-0-added}
 ### Added
