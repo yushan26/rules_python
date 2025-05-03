@@ -54,12 +54,14 @@ END_UNRELEASED_TEMPLATE
 
 {#v0-0-0-changed}
 ### Changed
+
 * (rules) On Windows, {obj}`--bootstrap_impl=system_python` is forced. This
   allows setting `--bootstrap_impl=script` in bazelrc for mixed-platform
   environments.
 * (rules) {obj}`pip_compile` now generates a `.test` target. The `_test` target is deprecated
   and will be removed in the next major release.
   ([#2794](https://github.com/bazel-contrib/rules_python/issues/2794)
+* (py_wheel) py_wheel always creates zip64-capable wheel zips
 
 {#v0-0-0-fixed}
 ### Fixed
