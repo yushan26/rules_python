@@ -23,19 +23,6 @@ import (
 	"regexp"
 )
 
-const (
-	sitterNodeTypeString              = "string"
-	sitterNodeTypeComment             = "comment"
-	sitterNodeTypeIdentifier          = "identifier"
-	sitterNodeTypeDottedName          = "dotted_name"
-	sitterNodeTypeIfStatement         = "if_statement"
-	sitterNodeTypeAliasedImport       = "aliased_import"
-	sitterNodeTypeWildcardImport      = "wildcard_import"
-	sitterNodeTypeImportStatement     = "import_statement"
-	sitterNodeTypeComparisonOperator  = "comparison_operator"
-	sitterNodeTypeImportFromStatement = "import_from_statement"
-)
-
 type ParserOutput struct {
 	FileName string
 	Modules  []module
@@ -60,36 +47,7 @@ func (p *FileParser) SetCodeAndFile(code []byte, relPackagePath, filename string
 	p.output.FileName = filename
 }
 
-
-// func (p *FileParser) Parse(ctx context.Context) (*ParserOutput, error) {
-// 	rootNode, err := ParseCode(p.code, p.relFilepath)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	p.output.HasMain = p.parseMain(ctx, rootNode)
-
-// 	p.parse(ctx, rootNode)
-// 	return &p.output, nil
-// }
-
 func (p *FileParser) Parse(ctx context.Context) (*ParserOutput, error) {
-	return p.naiveFileParser(p.code)
-}
-
-func (p *FileParser) ParseFile(ctx context.Context, repoRoot, relPackagePath, filename string) (*ParserOutput, error) {
-	code, err := os.ReadFile(filepath.Join(repoRoot, relPackagePath, filename))
-	if err != nil {
-		return nil, err
-	}
-	p.SetCodeAndFile(code, relPackagePath, filename)
-	return p.Parse(ctx)
-}
-
-// file_parser.go
-
-// A really really dumb python parser that's "good enough". Hopefully.
-func (p *FileParser) naiveFileParser(code []byte) (*ParserOutput, error) {
 	codeStr := string(code[:])
 
 	// Parse imports
@@ -115,6 +73,16 @@ func (p *FileParser) naiveFileParser(code []byte) (*ParserOutput, error) {
 	p.output.HasMain = mainPattern.MatchString(codeStr)
 	return &p.output, nil
 }
+
+func (p *FileParser) ParseFile(ctx context.Context, repoRoot, relPackagePath, filename string) (*ParserOutput, error) {
+	code, err := os.ReadFile(filepath.Join(repoRoot, relPackagePath, filename))
+	if err != nil {
+		return nil, err
+	}
+	p.SetCodeAndFile(code, relPackagePath, filename)
+	return p.Parse(ctx)
+}
+
 
 
 // parseImportLine processes a single import line and returns any modules found
