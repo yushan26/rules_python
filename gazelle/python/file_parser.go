@@ -17,13 +17,10 @@ package python
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
-
-	sitter "github.com/dougthor42/go-tree-sitter"
-	"github.com/dougthor42/go-tree-sitter/python"
+	"regexp"
 )
 
 const (
@@ -56,143 +53,6 @@ func NewFileParser() *FileParser {
 	return &FileParser{}
 }
 
-// ParseCode instantiates a new tree-sitter Parser and parses the python code, returning
-// the tree-sitter RootNode.
-// It prints a warning if parsing fails.
-func ParseCode(code []byte, path string) (*sitter.Node, error) {
-	parser := sitter.NewParser()
-	parser.SetLanguage(python.GetLanguage())
-
-	tree, err := parser.ParseCtx(context.Background(), nil, code)
-	if err != nil {
-		return nil, err
-	}
-
-	root := tree.RootNode()
-	if !root.HasError() {
-		return root, nil
-	}
-
-	log.Printf("WARNING: failed to parse %q. The resulting BUILD target may be incorrect.", path)
-
-	// Note: we intentionally do not return an error even when root.HasError because the parse
-	// failure may be in some part of the code that Gazelle doesn't care about.
-	verbose, envExists := os.LookupEnv("RULES_PYTHON_GAZELLE_VERBOSE")
-	if !envExists || verbose != "1" {
-		return root, nil
-	}
-
-	for i := 0; i < int(root.ChildCount()); i++ {
-		child := root.Child(i)
-		if child.IsError() {
-			// Example logs:
-			// gazelle: Parse error at {Row:1 Column:0}:
-			// def search_one_more_level[T]():
-			log.Printf("Parse error at %+v:\n%+v", child.StartPoint(), child.Content(code))
-			// Log the internal tree-sitter representation of what was parsed. Eg:
-			// gazelle: The above was parsed as: (ERROR (identifier) (call function: (list (identifier)) arguments: (argument_list)))
-			log.Printf("The above was parsed as: %v", child.String())
-		}
-	}
-
-	return root, nil
-}
-
-// parseMain returns true if the python file has an `if __name__ == "__main__":` block,
-// which is a common idiom for python scripts/binaries.
-func (p *FileParser) parseMain(ctx context.Context, node *sitter.Node) bool {
-	for i := 0; i < int(node.ChildCount()); i++ {
-		if err := ctx.Err(); err != nil {
-			return false
-		}
-		child := node.Child(i)
-		if child.Type() == sitterNodeTypeIfStatement &&
-			child.Child(1).Type() == sitterNodeTypeComparisonOperator && child.Child(1).Child(1).Type() == "==" {
-			statement := child.Child(1)
-			a, b := statement.Child(0), statement.Child(2)
-			// convert "'__main__' == __name__" to "__name__ == '__main__'"
-			if b.Type() == sitterNodeTypeIdentifier {
-				a, b = b, a
-			}
-			if a.Type() == sitterNodeTypeIdentifier && a.Content(p.code) == "__name__" &&
-				// at github.com/dougthor42/go-tree-sitter@latest (after v0.0.0-20240422154435-0628b34cbf9c we used)
-				// "__main__" is the second child of b. But now, it isn't.
-				// we cannot use the latest go-tree-sitter because of the top level reference in scanner.c.
-				// https://github.com/dougthor42/go-tree-sitter/blob/04d6b33fe138a98075210f5b770482ded024dc0f/python/scanner.c#L1
-				b.Type() == sitterNodeTypeString && string(p.code[b.StartByte()+1:b.EndByte()-1]) == "__main__" {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// parseImportStatement parses a node for an import statement, returning a `module` and a boolean
-// representing if the parse was OK or not.
-func parseImportStatement(node *sitter.Node, code []byte) (module, bool) {
-	switch node.Type() {
-	case sitterNodeTypeDottedName:
-		return module{
-			Name:       node.Content(code),
-			LineNumber: node.StartPoint().Row + 1,
-		}, true
-	case sitterNodeTypeAliasedImport:
-		return parseImportStatement(node.Child(0), code)
-	case sitterNodeTypeWildcardImport:
-		return module{
-			Name:       "*",
-			LineNumber: node.StartPoint().Row + 1,
-		}, true
-	}
-	return module{}, false
-}
-
-// parseImportStatements parses a node for import statements, returning true if the node is
-// an import statement. It updates FileParser.output.Modules with the `module` that the
-// import represents.
-func (p *FileParser) parseImportStatements(node *sitter.Node) bool {
-	if node.Type() == sitterNodeTypeImportStatement {
-		for j := 1; j < int(node.ChildCount()); j++ {
-			m, ok := parseImportStatement(node.Child(j), p.code)
-			if !ok {
-				continue
-			}
-			m.Filepath = p.relFilepath
-			if strings.HasPrefix(m.Name, ".") {
-				continue
-			}
-			p.output.Modules = append(p.output.Modules, m)
-		}
-	} else if node.Type() == sitterNodeTypeImportFromStatement {
-		from := node.Child(1).Content(p.code)
-		if strings.HasPrefix(from, ".") {
-			return true
-		}
-		for j := 3; j < int(node.ChildCount()); j++ {
-			m, ok := parseImportStatement(node.Child(j), p.code)
-			if !ok {
-				continue
-			}
-			m.Filepath = p.relFilepath
-			m.From = from
-			m.Name = fmt.Sprintf("%s.%s", from, m.Name)
-			p.output.Modules = append(p.output.Modules, m)
-		}
-	} else {
-		return false
-	}
-	return true
-}
-
-// parseComments parses a node for comments, returning true if the node is a comment.
-// It updates FileParser.output.Comments with the parsed comment.
-func (p *FileParser) parseComments(node *sitter.Node) bool {
-	if node.Type() == sitterNodeTypeComment {
-		p.output.Comments = append(p.output.Comments, comment(node.Content(p.code)))
-		return true
-	}
-	return false
-}
 
 func (p *FileParser) SetCodeAndFile(code []byte, relPackagePath, filename string) {
 	p.code = code
@@ -200,35 +60,21 @@ func (p *FileParser) SetCodeAndFile(code []byte, relPackagePath, filename string
 	p.output.FileName = filename
 }
 
-func (p *FileParser) parse(ctx context.Context, node *sitter.Node) {
-	if node == nil {
-		return
-	}
-	for i := 0; i < int(node.ChildCount()); i++ {
-		if err := ctx.Err(); err != nil {
-			return
-		}
-		child := node.Child(i)
-		if p.parseImportStatements(child) {
-			continue
-		}
-		if p.parseComments(child) {
-			continue
-		}
-		p.parse(ctx, child)
-	}
-}
+
+// func (p *FileParser) Parse(ctx context.Context) (*ParserOutput, error) {
+// 	rootNode, err := ParseCode(p.code, p.relFilepath)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	p.output.HasMain = p.parseMain(ctx, rootNode)
+
+// 	p.parse(ctx, rootNode)
+// 	return &p.output, nil
+// }
 
 func (p *FileParser) Parse(ctx context.Context) (*ParserOutput, error) {
-	rootNode, err := ParseCode(p.code, p.relFilepath)
-	if err != nil {
-		return nil, err
-	}
-
-	p.output.HasMain = p.parseMain(ctx, rootNode)
-
-	p.parse(ctx, rootNode)
-	return &p.output, nil
+	return p.naiveFileParser(p.code)
 }
 
 func (p *FileParser) ParseFile(ctx context.Context, repoRoot, relPackagePath, filename string) (*ParserOutput, error) {
@@ -238,4 +84,187 @@ func (p *FileParser) ParseFile(ctx context.Context, repoRoot, relPackagePath, fi
 	}
 	p.SetCodeAndFile(code, relPackagePath, filename)
 	return p.Parse(ctx)
+}
+
+// file_parser.go
+
+// A really really dumb python parser that's "good enough". Hopefully.
+func (p *FileParser) naiveFileParser(code []byte) (*ParserOutput, error) {
+	codeStr := string(code[:])
+
+	// Parse imports
+	modules, err := p.naiveImportParser(codeStr)
+	if err != nil {
+		return nil, err
+	}
+	p.output.Modules = modules
+
+	// Parse comments
+	// TODO: find comment-in-string or comment-in-comment cases
+	commentPattern := regexp.MustCompile(`(?m)#.+$`)
+	commentStrings := commentPattern.FindAllString(codeStr, -1)
+	var comments []comment
+	for _, s := range commentStrings {
+		comments = append(comments, comment(s))
+	}
+	p.output.Comments = comments
+
+	// Parse 'if __name__' block - only at root level (no indentation)
+	// Support both single and double quotes
+	mainPattern := regexp.MustCompile(`(?m)^if\s+__name__\s*==\s*["']__main__["']\s*:`)
+	p.output.HasMain = mainPattern.MatchString(codeStr)
+	return &p.output, nil
+}
+
+
+// parseImportLine processes a single import line and returns any modules found
+func (p *FileParser) parseImportLine(line string, lineNum uint32) []module {
+	trimmed := strings.TrimSpace(line)
+	// Skip empty lines or full-line comments
+	if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+		return nil
+	}
+	// Handle import statements
+	if strings.HasPrefix(trimmed, "import ") || strings.HasPrefix(trimmed, "from ") {
+		return parseImportStatement(trimmed, lineNum, p.relFilepath)
+	}
+	return nil
+}
+
+// ... existing code ...
+
+// isMultilineImportStart checks if a line starts a multiline import
+func isMultilineImportStart(line string) bool {
+	return strings.HasSuffix(line, "\\") || strings.Contains(line, "(")
+}
+
+// isMultilineImportEnd checks if a line ends a multiline import
+func isMultilineImportEnd(line string) bool {
+	return strings.Contains(line, ")") || (!strings.HasSuffix(line, "\\") && !strings.Contains(line, "("))
+}
+
+func (p *FileParser) naiveImportParser(code string) ([]module, error) {
+	lines := strings.Split(strings.ReplaceAll(code, "\r\n", "\n"), "\n")
+	var modules []module
+	var currentImportLines []string
+	var inMultilineImport bool
+	var startLineNum int
+	var inParentheses bool
+
+	for i, line := range lines {
+		trimmed := strings.TrimSpace(line)
+
+		// Handle multiline imports
+		if isMultilineImportStart(trimmed) || inMultilineImport {
+			if !inMultilineImport {
+				startLineNum = i
+				inParentheses = strings.Contains(trimmed, "(")
+			}
+			currentImportLines = append(currentImportLines, trimmed)
+			inMultilineImport = true
+
+			// Check for end of multiline import
+			if inParentheses {
+				if strings.Contains(trimmed, ")") {
+					inMultilineImport = false
+					inParentheses = false
+					joined := strings.Join(currentImportLines, " ")
+					currentImportLines = nil
+
+					mods := parseImportStatement(joined, uint32(startLineNum), p.relFilepath)
+					modules = append(modules, mods...)
+				}
+			} else if !strings.HasSuffix(trimmed, "\\") {
+				inMultilineImport = false
+				joined := strings.Join(currentImportLines, " ")
+				currentImportLines = nil
+
+				mods := parseImportStatement(joined, uint32(startLineNum), p.relFilepath)
+				modules = append(modules, mods...)
+			}
+			continue
+		}
+
+		// Handle single line imports
+		if mods := p.parseImportLine(trimmed, uint32(i)); mods != nil {
+			modules = append(modules, mods...)
+		}
+	}
+
+	return modules, nil
+}
+
+// parseImportStatement parses a single import statement and returns the modules it imports
+func parseImportStatement(statement string, lineNum uint32, filepath string) []module {
+	// Remove inline comment and clean up whitespace
+	statement, _, _ = strings.Cut(statement, "#")
+	statement = strings.TrimSpace(statement)
+
+	// Remove parentheses and clean up whitespace
+	statement = strings.Trim(statement, "() ")
+	statement = strings.TrimSpace(statement)
+
+	if strings.HasPrefix(statement, "from ") {
+		return parseFromImport(statement[5:], lineNum, filepath)
+	} else if strings.HasPrefix(statement, "import ") {
+		return parseDirectImport(statement[7:], lineNum, filepath)
+	}
+
+	return nil
+}
+
+// parseFromImport handles "from X import Y" statements
+func parseFromImport(statement string, lineNum uint32, filepath string) []module {
+	fromPart, importPart, found := strings.Cut(statement, " import ")
+	if !found {
+		return nil
+	}
+
+	fromPart = strings.TrimSpace(fromPart)
+	importPart = strings.Trim(importPart, "() ")
+	var mods []module
+
+	for _, item := range strings.Split(importPart, ",") {
+		item = strings.TrimSpace(item)
+		if item == "" {
+			continue
+		}
+		// Ignore aliasing (i.e., "as x")
+		item, _, _ = strings.Cut(item, " as ")
+		moduleName := fmt.Sprintf("%s.%s", fromPart, item)
+		if strings.HasPrefix(fromPart, ".") {
+			continue
+		}
+		mods = append(mods, module{
+			Name:       moduleName,
+			LineNumber: lineNum + 1,
+			Filepath:   filepath,
+			From:       fromPart,
+		})
+	}
+
+	return mods
+}
+
+// parseDirectImport handles "import X" statements
+func parseDirectImport(statement string, lineNum uint32, filepath string) []module {
+	var mods []module
+	importPart := strings.TrimSpace(statement)
+	importPart = strings.Trim(importPart, "() ")
+
+	for _, item := range strings.Split(importPart, ",") {
+		item = strings.TrimSpace(item)
+		if item == "" {
+			continue
+		}
+		item, _, _ = strings.Cut(item, " as ")
+		mods = append(mods, module{
+			Name:       item,
+			LineNumber: lineNum + 1,
+			Filepath:   filepath,
+			From:       "",
+		})
+	}
+
+	return mods
 }

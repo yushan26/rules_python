@@ -134,6 +134,59 @@ func TestParseImportStatements(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "multiline imports",
+			code: `from foo import (
+    bar,
+    baz,
+    qux as d
+)
+
+import (
+    os,
+    sys,
+    pathlib as path
+)`,
+			filepath: "test.py",
+			result: []module{
+				{
+					Name:       "foo.bar",
+					LineNumber: 1,
+					Filepath:   "test.py",
+					From:       "foo",
+				},
+				{
+					Name:       "foo.baz",
+					LineNumber: 1,
+					Filepath:   "test.py",
+					From:       "foo",
+				},
+				{
+					Name:       "foo.qux",
+					LineNumber: 1,
+					Filepath:   "test.py",
+					From:       "foo",
+				},
+				{
+					Name:       "os",
+					LineNumber: 7,
+					Filepath:   "test.py",
+					From:       "",
+				},
+				{
+					Name:       "sys",
+					LineNumber: 7,
+					Filepath:   "test.py",
+					From:       "",
+				},
+				{
+					Name:       "pathlib",
+					LineNumber: 7,
+					Filepath:   "test.py",
+					From:       "",
+				},
+			},
+		},
 	}
 	for _, u := range units {
 		t.Run(u.name, func(t *testing.T) {
