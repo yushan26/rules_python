@@ -93,6 +93,8 @@ END_UNRELEASED_TEMPLATE
   also retrieved from the URL as opposed to only the `--hash` parameter. Fixes
   [#2363](https://github.com/bazel-contrib/rules_python/issues/2363).
 * (pypi) `whl_library` now infers file names from its `urls` attribute correctly.
+* (pypi) When running under `bazel test`, be sure that temporary `requirements` file
+  remains writable.
 * (py_test, py_binary) Allow external files to be used for main
 
 {#v0-0-0-added}
