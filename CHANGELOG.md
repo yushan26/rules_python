@@ -109,6 +109,8 @@ END_UNRELEASED_TEMPLATE
   Set the `RULES_PYTHON_ENABLE_PIPSTAR=1` environment variable to enable it.
 * (utils) Add a way to run a REPL for any `rules_python` target that returns
   a `PyInfo` provider.
+* (uv) Handle `.netrc` and `auth_patterns` auth when downloading `uv`. Work towards
+  [#1975](https://github.com/bazel-contrib/rules_python/issues/1975).
 * (toolchains) Arbitrary python-build-standalone runtimes can be registered
   and activated with custom flags. See the [Registering custom runtimes]
   docs and {obj}`single_version_platform_override()` API docs for more
