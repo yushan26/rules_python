@@ -71,6 +71,7 @@ END_UNRELEASED_TEMPLATE
 * (providers) (experimental) {obj}`PyInfo.venv_symlinks` replaces
   `PyInfo.site_packages_symlinks`
 * (deps) Updating setuptools to patch CVE-2025-47273.
+  (gazelle) Export `parser.Module` as a public struct.
 
 {#1-5-0-fixed}
 ### Fixed
