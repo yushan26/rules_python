@@ -123,6 +123,7 @@ func (py *Python) GenerateRules(args language.GenerateArgs) language.GenerateRes
 			pyFileNames.Add(f)
 			if !hasPyBinaryEntryPointFile && f == pyBinaryEntrypointFilename {
 				hasPyBinaryEntryPointFile = true
+				pyLibraryFilenames.Add(f)
 			} else if !hasPyTestEntryPointFile && f == pyTestEntrypointFilename {
 				hasPyTestEntryPointFile = true
 			} else if f == conftestFilename {
@@ -247,9 +248,9 @@ func (py *Python) GenerateRules(args language.GenerateArgs) language.GenerateRes
 
 				// Remove the file from srcs if we're doing per-file library generation so
 				// that we don't also generate a py_library target for it.
-				if cfg.PerFileGeneration() {
-					srcs.Remove(name)
-				}
+				// if cfg.PerFileGeneration() {
+				// 	srcs.Remove(name)
+				// }
 			}
 			sort.Strings(mainFileNames)
 			for _, filename := range mainFileNames {
@@ -352,6 +353,7 @@ func (py *Python) GenerateRules(args language.GenerateArgs) language.GenerateRes
 			collisionErrors.Add(err)
 		}
 
+		// Create the py_binary target that depends on the py_library
 		pyBinaryTarget := newTargetBuilder(pyBinaryKind, pyBinaryTargetName, pythonProjectRoot, args.Rel, pyFileNames).
 			setMain(pyBinaryEntrypointFilename).
 			addVisibility(visibility).
