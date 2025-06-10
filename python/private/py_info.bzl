@@ -68,10 +68,23 @@ the venv to create the path under.
 A runfiles-root relative path that `venv_path` will symlink to. If `None`,
 it means to not create a symlink.
 """,
+        "package": """
+:type: str | None
+
+Represents the PyPI package name that the code originates from. It is normalized according to the
+PEP440 with all `-` replaced with `_`, i.e. the same as the package name in the hub repository that
+it would come from.
+""",
         "venv_path": """
 :type: str
 
 A path relative to the `kind` directory within the venv.
+""",
+        "version": """
+:type: str | None
+
+Represents the PyPI package version that the code originates from. It is normalized according to the
+PEP440 standard.
 """,
     },
 )
@@ -296,27 +309,7 @@ This field is currently unused in Bazel and may go away in the future.
         "venv_symlinks": """
 :type: depset[VenvSymlinkEntry]
 
-A depset with `topological` ordering.
-
-
-Tuples of `(runfiles_path, site_packages_path)`. Where
-* `runfiles_path` is a runfiles-root relative path. It is the path that
-  has the code to make importable. If `None` or empty string, then it means
-  to not create a site packages directory with the `site_packages_path`
-  name.
-* `site_packages_path` is a path relative to the site-packages directory of
-  the venv for whatever creates the venv (typically py_binary). It makes
-  the code in `runfiles_path` available for import. Note that this
-  is created as a "raw" symlink (via `declare_symlink`).
-
 :::{include} /_includes/experimental_api.md
-:::
-
-:::{tip}
-The topological ordering means dependencies earlier and closer to the consumer
-have precedence. This allows e.g. a binary to add dependencies that override
-values from further way dependencies, such as forcing symlinks to point to
-specific paths or preventing symlinks from being created.
 :::
 
 :::{versionadded} VERSION_NEXT_FEATURE
@@ -375,9 +368,6 @@ def _PyInfoBuilder_typedef():
 
     :::{field} venv_symlinks
     :type: DepsetBuilder[tuple[str | None, str]]
-
-    NOTE: This depset has `topological` order
-    :::
     """
 
 def _PyInfoBuilder_new():
@@ -417,7 +407,7 @@ def _PyInfoBuilder_new():
         transitive_pyc_files = builders.DepsetBuilder(),
         transitive_pyi_files = builders.DepsetBuilder(),
         transitive_sources = builders.DepsetBuilder(),
-        venv_symlinks = builders.DepsetBuilder(order = "topological"),
+        venv_symlinks = builders.DepsetBuilder(),
     )
     return self
 
