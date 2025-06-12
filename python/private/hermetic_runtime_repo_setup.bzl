@@ -195,6 +195,14 @@ def define_hermetic_runtime_toolchain_impl(
         values = {"collect_code_coverage": "true"},
         visibility = ["//visibility:private"],
     )
+    if not version_info.pre:
+        releaselevel = "final"
+    else:
+        releaselevel = {
+            "a": "alpha",
+            "b": "beta",
+            "rc": "candidate",
+        }.get(version_info.pre[0])
 
     py_runtime(
         name = "py3_runtime",
@@ -204,6 +212,8 @@ def define_hermetic_runtime_toolchain_impl(
             "major": str(version_info.release[0]),
             "micro": str(version_info.release[2]),
             "minor": str(version_info.release[1]),
+            "releaselevel": releaselevel,
+            "serial": str(version_info.pre[1]) if version_info.pre else "0",
         },
         coverage_tool = select({
             # Convert empty string to None
