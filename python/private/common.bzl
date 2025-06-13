@@ -331,7 +331,7 @@ def collect_runfiles(ctx, files = depset()):
         #   If the target is a File, then add that file to the runfiles.
         #   Otherwise, add the target's **data runfiles** to the runfiles.
         #
-        # Note that, contray to best practice, the default outputs of the
+        # Note that, contrary to best practice, the default outputs of the
         # targets in `data` are *not* added, nor are the default runfiles.
         #
         # This ends up being important for several reasons, some of which are
@@ -396,9 +396,8 @@ def create_py_info(
         implicit_pyc_files: {type}`depset[File]` Implicitly generated pyc files
             that a binary can choose to include.
         imports: depset of strings; the import path values to propagate.
-        venv_symlinks: {type}`list[tuple[str, str]]` tuples of
-            `(runfiles_path, site_packages_path)` for symlinks to create
-            in the consuming binary's venv site packages.
+        venv_symlinks: {type}`list[VenvSymlinkEntry]` instances for
+            symlinks to create in the consuming binary's venv.
 
     Returns:
         A tuple of the PyInfo instance and a depset of the
@@ -426,7 +425,7 @@ def create_py_info(
         else:
             # TODO(b/228692666): Remove this once non-PyInfo targets are no
             # longer supported in `deps`.
-            files = target.files.to_list()
+            files = target[DefaultInfo].files.to_list()
             for f in files:
                 if f.extension == "py":
                     py_info.transitive_sources.add(f)
@@ -450,7 +449,7 @@ def create_py_info(
                 info = _get_py_info(target)
                 py_info.merge_uses_shared_libraries(info.uses_shared_libraries)
             else:
-                files = target.files.to_list()
+                files = target[DefaultInfo].files.to_list()
                 for f in files:
                     py_info.merge_uses_shared_libraries(cc_helper.is_valid_shared_library_artifact(f))
                     if py_info.get_uses_shared_libraries():

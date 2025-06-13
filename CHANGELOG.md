@@ -54,15 +54,36 @@ END_UNRELEASED_TEMPLATE
 
 {#v0-0-0-changed}
 ### Changed
+* (gazelle) For package mode, resolve dependencies when imports are relative
+  to the package path. This is enabled via the
+  `# gazelle:experimental_allow_relative_imports` true directive ({gh-issue}`2203`).
 
-* If using the (deprecated) autodetecting/runtime_env toolchain, then the Python
-  version specified at build-time *must* match the Python version used at
-  runtime (the {obj}`--@rules_python//python/config_settings:python_version`
-  flag and the {attr}`python_version` attribute control the build-time version
-  for a target). If they don't match, dependencies won't be importable. (Such a
-  misconfiguration was unlikely to work to begin with; this is called out as an
-  FYI).
-* (rules) {obj}`--bootstrap_impl=script` is the default for non-Windows.
+{#v0-0-0-fixed}
+### Fixed
+* Nothing fixed.
+
+{#v0-0-0-added}
+### Added
+* Nothing added.
+
+{#v0-0-0-removed}
+### Removed
+* Nothing removed.
+
+{#1-5-0}
+## [1.5.0] - 2025-06-11
+
+[1.5.0]: https://github.com/bazel-contrib/rules_python/releases/tag/1.5.0
+
+{#1-5-0-changed}
+### Changed
+
+* (toolchain) Bundled toolchain version updates:
+    * 3.9 now references 3.9.23
+    * 3.10 now references 3.10.18
+    * 3.11 now references 3.11.13
+    * 3.12 now references 3.12.11
+    * 3.13 now references 3.13.4
 * (rules) On Windows, {obj}`--bootstrap_impl=system_python` is forced. This
   allows setting `--bootstrap_impl=script` in bazelrc for mixed-platform
   environments.
@@ -72,12 +93,9 @@ END_UNRELEASED_TEMPLATE
 * (py_wheel) py_wheel always creates zip64-capable wheel zips
 * (providers) (experimental) {obj}`PyInfo.venv_symlinks` replaces
   `PyInfo.site_packages_symlinks`
-* (gazelle) For package mode, resolve dependencies when imports are relative
-  to the package path. This is enabled via the
-  `# gazelle:experimental_allow_relative_imports` true directive.
-  (https://github.com/bazel-contrib/rules_python/issues/2203)
+* (deps) Updating setuptools to patch CVE-2025-47273.
 
-{#v0-0-0-fixed}
+{#1-5-0-fixed}
 ### Fixed
 
 * (rules) PyInfo provider is now advertised by py_test, py_binary, and py_library;
@@ -103,8 +121,10 @@ END_UNRELEASED_TEMPLATE
 * (pypi) Correctly aggregate the sources when the hashes specified in the lockfile differ
   by platform even though the same version is used. Fixes [#2648](https://github.com/bazel-contrib/rules_python/issues/2648).
 * (pypi) `compile_pip_requirements` test rule works behind the proxy
+* (toolchains) The hermetic toolchains now correctly statically advertise the
+  `releaselevel` and `serial` for pre-release hermetic toolchains ({gh-issue}`2837`).
 
-{#v0-0-0-added}
+{#1-5-0-added}
 ### Added
 * Repo utilities `execute_unchecked`, `execute_checked`, and `execute_checked_stdout` now
   support `log_stdout` and `log_stderr` keyword arg booleans. When these are `True`
@@ -125,8 +145,9 @@ END_UNRELEASED_TEMPLATE
 * (rules) Added support for a using constraints files with `compile_pip_requirements`.
   Useful when an intermediate dependency needs to be upgraded to pull in
   security patches.
+* (toolchains): 3.14.0b2 has been added as a preview.
 
-{#v0-0-0-removed}
+{#1-5-0-removed}
 ### Removed
 * Nothing removed.
 
