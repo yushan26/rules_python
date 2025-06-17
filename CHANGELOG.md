@@ -47,6 +47,27 @@ BEGIN_UNRELEASED_TEMPLATE
 END_UNRELEASED_TEMPLATE
 -->
 
+{#v0-0-0}
+## Unreleased
+
+[0.0.0]: https://github.com/bazel-contrib/rules_python/releases/tag/0.0.0
+
+{#v0-0-0-changed}
+### Changed
+* (gazelle) Types for exposed members of `python.ParserOutput` are now all public.
+
+{#v0-0-0-fixed}
+### Fixed
+* Nothing fixed.
+
+{#v0-0-0-added}
+### Added
+* Nothing added.
+
+{#v0-0-0-removed}
+### Removed
+* Nothing removed.
+
 {#1-5-0}
 ## [1.5.0] - 2025-06-11
 
@@ -71,7 +92,6 @@ END_UNRELEASED_TEMPLATE
 * (providers) (experimental) {obj}`PyInfo.venv_symlinks` replaces
   `PyInfo.site_packages_symlinks`
 * (deps) Updating setuptools to patch CVE-2025-47273.
-  (gazelle) Export `parser.Module` as a public struct.
 
 {#1-5-0-fixed}
 ### Fixed
