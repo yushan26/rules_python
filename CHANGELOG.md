@@ -62,7 +62,9 @@ END_UNRELEASED_TEMPLATE
 
 {#v0-0-0-added}
 ### Added
-* Nothing added.
+* (pypi) To configure the environment for `requirements.txt` evaluation, use the newly added
+  developer preview of the `pip.default` tag class. Only `rules_python` and root modules can use
+  this feature.
 
 {#v0-0-0-removed}
 ### Removed
