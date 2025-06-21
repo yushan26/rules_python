@@ -583,7 +583,7 @@ deps = [
 ]
 ```
 
-#### Annotation: `experimental_allow_relative_imports`
+#### Directive: `experimental_allow_relative_imports`
 Enables experimental support for resolving relative imports in
 `python_generation_mode package`.
 
