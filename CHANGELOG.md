@@ -57,6 +57,7 @@ END_UNRELEASED_TEMPLATE
 * (gazelle) For package mode, resolve dependencies when imports are relative
   to the package path. This is enabled via the
   `# gazelle:experimental_allow_relative_imports` true directive ({gh-issue}`2203`).
+* (gazelle) Types for exposed members of `python.ParserOutput` are now all public.
 
 {#v0-0-0-fixed}
 ### Fixed
@@ -64,7 +65,9 @@ END_UNRELEASED_TEMPLATE
 
 {#v0-0-0-added}
 ### Added
-* Nothing added.
+* (pypi) To configure the environment for `requirements.txt` evaluation, use the newly added
+  developer preview of the `pip.default` tag class. Only `rules_python` and root modules can use
+  this feature. You can also configure custom `config_settings` using `pip.default`.
 
 {#v0-0-0-removed}
 ### Removed

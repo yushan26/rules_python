@@ -153,7 +153,7 @@ func (py *Resolver) Resolve(
 		hasFatalError := false
 	MODULES_LOOP:
 		for it.Next() {
-			mod := it.Value().(module)
+			mod := it.Value().(Module)
 			moduleName := mod.Name
 			// Transform relative imports `.` or `..foo.bar` into the package path from root.
 			if strings.HasPrefix(mod.From, ".") {
@@ -200,7 +200,6 @@ func (py *Resolver) Resolve(
 
 				moduleName = strings.Join(absParts, ".")
 			}
-
 
 			moduleParts := strings.Split(moduleName, ".")
 			possibleModules := []string{moduleName}
@@ -264,7 +263,7 @@ func (py *Resolver) Resolve(
 						matches := ix.FindRulesByImportWithConfig(c, imp, languageName)
 						if len(matches) == 0 {
 							// Check if the imported module is part of the standard library.
-							if isStdModule(module{Name: moduleName}) {
+							if isStdModule(Module{Name: moduleName}) {
 								continue MODULES_LOOP
 							} else if cfg.ValidateImportStatements() {
 								err := fmt.Errorf(
