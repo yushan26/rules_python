@@ -55,11 +55,13 @@ func (*Resolver) Name() string { return languageName }
 // If nil is returned, the rule will not be indexed. If any non-nil slice is
 // returned, including an empty slice, the rule will be indexed.
 func (py *Resolver) Imports(c *config.Config, r *rule.Rule, f *rule.File) []resolve.ImportSpec {
-	if r.Kind() == "py_binary" {
-		return nil
-	}
 	cfgs := c.Exts[languageName].(pythonconfig.Configs)
 	cfg := cfgs[f.Pkg]
+	if !cfg.PerFileGeneration() && GetActualKindName(r.Kind(), c) == pyBinaryKind {
+		// Don't index py_binary in except in file mode, because all non-test Python files
+		// are in py_library already.
+		return nil
+	}
 	srcs := r.AttrStrings("srcs")
 	provides := make([]resolve.ImportSpec, 0, len(srcs)+1)
 	for _, src := range srcs {
