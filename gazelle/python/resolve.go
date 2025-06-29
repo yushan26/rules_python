@@ -124,12 +124,16 @@ func (py *Resolver) Embeds(r *rule.Rule, from label.Label) []label.Label {
 }
 
 // addDependency adds a dependency to either the regular deps or pyiDeps set based on
-// whether the module is type-checking only.
-func addDependency(dep string, mod Module, deps, pyiDeps *treeset.Set) {
-	if mod.TypeCheckingOnly {
-		pyiDeps.Add(dep)
+// whether the module is type-checking only. If a module is added as both
+// non-type-checking and type-checking, it should end up in deps and not pyiDeps.
+func addDependency(dep string, typeCheckingOnly bool, deps, pyiDeps *treeset.Set) {
+	if typeCheckingOnly {
+		if !deps.Contains(dep) {
+			pyiDeps.Add(dep)
+		}
 	} else {
 		deps.Add(dep)
+		pyiDeps.Remove(dep)
 	}
 }
 
@@ -240,7 +244,7 @@ func (py *Resolver) Resolve(
 							override.Repo = ""
 						}
 						dep := override.Rel(from.Repo, from.Pkg).String()
-						addDependency(dep, mod, deps, pyiDeps)
+						addDependency(dep, mod.TypeCheckingOnly, deps, pyiDeps)
 						if explainDependency == dep {
 							log.Printf("Explaining dependency (%s): "+
 								"in the target %q, the file %q imports %q at line %d, "+
@@ -251,7 +255,7 @@ func (py *Resolver) Resolve(
 					}
 				} else {
 					if dep, distributionName, ok := cfg.FindThirdPartyDependency(moduleName); ok {
-						addDependency(dep, mod, deps, pyiDeps)
+						addDependency(dep, mod.TypeCheckingOnly, deps, pyiDeps)
 						// Add the type and stub dependencies if they exist.
 						modules := []string{
 							fmt.Sprintf("%s_stubs", strings.ToLower(distributionName)),
@@ -261,8 +265,8 @@ func (py *Resolver) Resolve(
 						}
 						for _, module := range modules {
 							if dep, _, ok := cfg.FindThirdPartyDependency(module); ok {
-								// Type stub packages always go to pyiDeps
-								pyiDeps.Add(dep)
+								// Type stub packages are added as type-checking only.
+								addDependency(dep, true, deps, pyiDeps)
 							}
 						}
 						if explainDependency == dep {
@@ -321,7 +325,7 @@ func (py *Resolver) Resolve(
 						}
 						matchLabel := filteredMatches[0].Label.Rel(from.Repo, from.Pkg)
 						dep := matchLabel.String()
-						addDependency(dep, mod, deps, pyiDeps)
+						addDependency(dep, mod.TypeCheckingOnly, deps, pyiDeps)
 						if explainDependency == dep {
 							log.Printf("Explaining dependency (%s): "+
 								"in the target %q, the file %q imports %q at line %d, "+
