@@ -66,12 +66,18 @@ END_UNRELEASED_TEMPLATE
 * (pypi) Fixes an issue where builds using a `bazel vendor` vendor directory
   would fail if the constraints file contained environment markers. Fixes
   [#2996](https://github.com/bazel-contrib/rules_python/issues/2996).
+* (pypi) Wheels with BUILD.bazel (or other special Bazel files) no longer
+  result in missing files at runtime
+  ([#2782](https://github.com/bazel-contrib/rules_python/issues/2782)).
 
 {#v0-0-0-added}
 ### Added
 * (pypi) To configure the environment for `requirements.txt` evaluation, use the newly added
   developer preview of the `pip.default` tag class. Only `rules_python` and root modules can use
   this feature. You can also configure custom `config_settings` using `pip.default`.
+* (gazelle) New directive `gazelle:python_generate_pyi_deps`; when `true`,
+  dependencies added to satisfy type-only imports (`if TYPE_CHECKING`) and type
+  stub packages are added to `pyi_deps` instead of `deps`.
 
 {#v0-0-0-removed}
 ### Removed
