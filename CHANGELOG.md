@@ -58,7 +58,8 @@ END_UNRELEASED_TEMPLATE
   to the package path. This is enabled via the
   `# gazelle:experimental_allow_relative_imports` true directive ({gh-issue}`2203`).
 * (gazelle) Types for exposed members of `python.ParserOutput` are now all public.
-* (gazelle) Remove entry point file requirements when generating rules.
+* (gazelle) Removed the requirement for `__init__.py`, `__main__.py`, or `__test__.py` files to be
+  present in a directory to generate a `BUILD.bazel` file.
 
 {#v0-0-0-fixed}
 ### Fixed
