@@ -508,7 +508,6 @@ func (py *Python) getRulesWithInvalidSrcs(args language.GenerateArgs) (invalidRu
 				break
 			}
 		}
-		// If all srcs are invalid, delete the rule.
 		if allInvalidSrcs {
 			invalidRules = append(invalidRules, newTargetBuilder(existingRule.Kind(), existingRule.Name(), args.Config.RepoRoot, args.Rel, nil).build())
 		}

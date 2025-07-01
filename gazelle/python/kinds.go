@@ -70,6 +70,7 @@ var pyKinds = map[string]rule.KindInfo{
 		MatchAny: false,
 		NonEmptyAttrs: map[string]bool{
 			"deps":    true,
+			"main":    true,
 			"srcs":    true,
 			"imports": true,
 		},
