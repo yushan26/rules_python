@@ -79,6 +79,9 @@ END_UNRELEASED_TEMPLATE
 * (runfiles) The pypi runfiles package now includes `py.typed` to indicate it
   supports type checking
   ([#2503](https://github.com/bazel-contrib/rules_python/issues/2503)).
+* (toolchains) `local_runtime_repo` now checks if the include directory exists
+  before attempting to watch it, fixing issues on macOS with system Python
+  ({gh-issue}`3043`).
 
 {#v0-0-0-added}
 ### Added
