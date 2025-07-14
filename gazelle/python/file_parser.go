@@ -146,9 +146,11 @@ func parseImportStatement(node *sitter.Node, code []byte) (Module, bool) {
 
 // cleanImportString removes backslashes and all whitespace from the string.
 func cleanImportString(s string) string {
+	s = strings.ReplaceAll(s, "\r\n", "")
 	s = strings.ReplaceAll(s, "\\", "")
 	s = strings.ReplaceAll(s, " ", "")
 	s = strings.ReplaceAll(s, "\n", "")
+	s = strings.ReplaceAll(s, "\t", "")
 	return s
 }
 
@@ -163,6 +165,7 @@ func (p *FileParser) parseImportStatements(node *sitter.Node) bool {
 				continue
 			}
 			m.From = cleanImportString(m.From)
+			m.Name = cleanImportString(m.Name)
 			m.Filepath = p.relFilepath
 			m.TypeCheckingOnly = p.inTypeCheckingBlock
 			if strings.HasPrefix(m.Name, ".") {
@@ -185,6 +188,7 @@ func (p *FileParser) parseImportStatements(node *sitter.Node) bool {
 			}
 			m.Filepath = p.relFilepath
 			m.From = from
+			m.Name = cleanImportString(m.Name)
 			m.Name = fmt.Sprintf("%s.%s", from, m.Name)
 			m.TypeCheckingOnly = p.inTypeCheckingBlock
 			p.output.Modules = append(p.output.Modules, m)
