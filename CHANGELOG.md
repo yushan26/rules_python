@@ -69,6 +69,8 @@ END_UNRELEASED_TEMPLATE
 * (pypi) Wheels with BUILD.bazel (or other special Bazel files) no longer
   result in missing files at runtime
   ([#2782](https://github.com/bazel-contrib/rules_python/issues/2782)).
+* (gazelle) Remove py_binary targets with invalid srcs. This includes files
+  that are not generated or regular files.
 
 {#v0-0-0-added}
 ### Added
