@@ -32,6 +32,7 @@ import (
 	"github.com/emirpasic/gods/sets/treeset"
 	godsutils "github.com/emirpasic/gods/utils"
 
+
 	"github.com/bazel-contrib/rules_python/gazelle/pythonconfig"
 )
 
@@ -492,18 +493,28 @@ func (py *Python) getRulesWithInvalidSrcs(args language.GenerateArgs) (invalidRu
 	if args.File == nil {
 		return
 	}
-	regularFiles := args.RegularFiles
-	regularFilesMap := make(map[string]struct{})
-	for _, file := range regularFiles {
-		regularFilesMap[file] = struct{}{}
+	filesMap := make(map[string]struct{})
+	for _, file := range args.RegularFiles {
+		filesMap[file] = struct{}{}
+	}
+	for _, file := range args.GenFiles {
+		filesMap[file] = struct{}{}
+	}
+
+	isTarget := func(src string) bool {
+		return strings.HasPrefix(src, "@") || strings.HasPrefix(src, "//") || strings.HasPrefix(src, ":")
 	}
 	for _, existingRule := range args.File.Rules {
-		if _, ok := py.Kinds()[existingRule.Kind()]; !ok {
+		if existingRule.Kind() != pyBinaryKind {
 			continue
 		}
 		allInvalidSrcs := true
 		for _, src := range existingRule.AttrStrings("srcs") {
-			if _, ok := regularFilesMap[src]; ok {
+			if _, ok := filesMap[src]; ok {
+				allInvalidSrcs = false
+				break
+			}
+			if isTarget(src) {
 				allInvalidSrcs = false
 				break
 			}
@@ -514,6 +525,7 @@ func (py *Python) getRulesWithInvalidSrcs(args language.GenerateArgs) (invalidRu
 	}
 	return invalidRules
 }
+
 // isBazelPackage determines if the directory is a Bazel package by probing for
 // the existence of a known BUILD file name.
 func isBazelPackage(dir string) bool {

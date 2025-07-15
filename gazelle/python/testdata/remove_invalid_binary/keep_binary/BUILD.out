@@ -1,0 +1,5 @@
+py_binary(
+    name = "keep_target_binary",
+    srcs = ["//test/binary:__main__.py"],
+    visibility = ["//:__subpackages__"],
+)
