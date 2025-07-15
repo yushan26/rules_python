@@ -111,10 +111,7 @@ func (py *Python) GenerateRules(args language.GenerateArgs) language.GenerateRes
 	hasConftestFile := false
 
 	testFileGlobs := cfg.TestFilePattern()
-	filteredFiles := make(map[string]struct{})
-	for _, f := range args.RegularFiles {
-		filteredFiles[f] = struct{}{}
-	}
+
 	for _, f := range args.RegularFiles {
 		if cfg.IgnoresFile(filepath.Base(f)) {
 			continue
