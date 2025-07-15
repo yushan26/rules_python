@@ -1,5 +1,7 @@
+load("@rules_python//python:defs.bzl", "py_binary")
+
 py_binary(
-    name = "keep_target_binary",
-    srcs = ["//test/binary:__main__.py"],
+    name = "foo",
+    srcs = ["foo.py"],
     visibility = ["//:__subpackages__"],
 )

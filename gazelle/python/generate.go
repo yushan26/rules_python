@@ -32,7 +32,6 @@ import (
 	"github.com/emirpasic/gods/sets/treeset"
 	godsutils "github.com/emirpasic/gods/utils"
 
-
 	"github.com/bazel-contrib/rules_python/gazelle/pythonconfig"
 )
 
@@ -112,7 +111,10 @@ func (py *Python) GenerateRules(args language.GenerateArgs) language.GenerateRes
 	hasConftestFile := false
 
 	testFileGlobs := cfg.TestFilePattern()
-
+	filteredFiles := make(map[string]struct{})
+	for _, f := range args.RegularFiles {
+		filteredFiles[f] = struct{}{}
+	}
 	for _, f := range args.RegularFiles {
 		if cfg.IgnoresFile(filepath.Base(f)) {
 			continue
@@ -474,7 +476,7 @@ func (py *Python) GenerateRules(args language.GenerateArgs) language.GenerateRes
 		result.Imports = append(result.Imports, pyTest.PrivateAttr(config.GazelleImportsKey))
 	}
 	if !cfg.CoarseGrainedGeneration() {
-		emptyRules := py.getRulesWithInvalidSrcs(args)
+		emptyRules := py.getRulesWithInvalidSrcs(cfg, args)
 		result.Empty = append(result.Empty, emptyRules...)
 	}
 	if !collisionErrors.Empty() {
@@ -488,13 +490,17 @@ func (py *Python) GenerateRules(args language.GenerateArgs) language.GenerateRes
 	return result
 }
 
-// getRulesWithInvalidSrcs checks existing Python rules in the BUILD file and return the rules with invalid srcs.
-func (py *Python) getRulesWithInvalidSrcs(args language.GenerateArgs) (invalidRules []*rule.Rule) {
+// getRulesWithInvalidSrcs checks existing Python rules in the BUILD file and return the rules with invalid source files.
+// Invalid source files are files that do not exist or not a target.
+func (py *Python) getRulesWithInvalidSrcs(cfg *pythonconfig.Config, args language.GenerateArgs) (invalidRules []*rule.Rule) {
 	if args.File == nil {
 		return
 	}
 	filesMap := make(map[string]struct{})
 	for _, file := range args.RegularFiles {
+		if cfg.IgnoresFile(filepath.Base(file)) {
+			continue
+		}
 		filesMap[file] = struct{}{}
 	}
 	for _, file := range args.GenFiles {
@@ -508,18 +514,18 @@ func (py *Python) getRulesWithInvalidSrcs(args language.GenerateArgs) (invalidRu
 		if existingRule.Kind() != pyBinaryKind {
 			continue
 		}
-		allInvalidSrcs := true
+		hasValidSrcs := true
 		for _, src := range existingRule.AttrStrings("srcs") {
-			if _, ok := filesMap[src]; ok {
-				allInvalidSrcs = false
-				break
-			}
 			if isTarget(src) {
-				allInvalidSrcs = false
-				break
+				continue
 			}
+			if _, ok := filesMap[src]; ok {
+				continue
+			}
+			hasValidSrcs = false
+			break
 		}
-		if allInvalidSrcs {
+		if !hasValidSrcs {
 			invalidRules = append(invalidRules, newTargetBuilder(existingRule.Kind(), existingRule.Name(), args.Config.RepoRoot, args.Rel, nil).build())
 		}
 	}
